@@ -1,0 +1,356 @@
+/* ------------------------------------------------------------------- cards */
+
+.cards {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.card {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--card-w);
+  height: var(--card-h);
+  pointer-events: auto;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  perspective: 1000px;
+  transition: transform var(--dur-card) var(--ease-out);
+  will-change: transform;
+}
+
+.cards.no-anim .card,
+.cards.no-anim .card * {
+  transition: none !important;
+}
+
+.card__inner {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transform: rotateY(180deg);
+  transition: transform var(--dur-flip) var(--ease-out);
+}
+
+.card.is-up .card__inner {
+  transform: rotateY(0deg);
+}
+
+.card__face {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-card);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+}
+
+/* ------------------------------------------------------------------- front */
+
+.card__front {
+  background: linear-gradient(158deg, var(--paper-1) 0%, var(--paper-2) 100%);
+  color: var(--ink-black);
+}
+
+.card__front::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow:
+    inset 0 0 0 1px oklch(1 0 0 / 0.75),
+    inset 0 0 0 1.5px color-mix(in oklab, var(--paper-edge) 55%, transparent);
+  pointer-events: none;
+}
+
+.card__sheen {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    128deg,
+    oklch(1 0 0 / 0.5) 0%,
+    oklch(1 0 0 / 0) 34%,
+    oklch(0.7 0.02 260 / 0.03) 72%,
+    oklch(0.5 0.03 260 / 0.07) 100%
+  );
+  pointer-events: none;
+  z-index: 3;
+}
+
+.card[data-color='red'] .pip {
+  fill: var(--ink-red);
+}
+
+.card[data-color='black'] .pip {
+  fill: var(--ink-black);
+}
+
+.card__art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+/* corners */
+
+.corner {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 0.86;
+  z-index: 2;
+  top: 3.6%;
+  left: 4.2%;
+}
+
+.corner--br {
+  top: auto;
+  left: auto;
+  right: 4.2%;
+  bottom: 3.6%;
+  transform: rotate(180deg);
+}
+
+.corner__rank {
+  font:
+    800 calc(var(--card-w) * 0.2) / 0.86 ui-sans-serif,
+    system-ui,
+    'Segoe UI',
+    sans-serif;
+  letter-spacing: -0.045em;
+  font-variant-numeric: lining-nums;
+}
+
+.card[data-rank='10'] .corner__rank {
+  font-size: calc(var(--card-w) * 0.165);
+  letter-spacing: -0.07em;
+}
+
+.card[data-color='red'] .corner__rank {
+  color: var(--ink-red);
+}
+
+.card[data-color='black'] .corner__rank {
+  color: var(--ink-black);
+}
+
+.corner__suit {
+  width: calc(var(--card-w) * 0.14);
+  height: calc(var(--card-w) * 0.14);
+  margin-top: calc(var(--card-w) * 0.03);
+}
+
+/* court cards */
+
+.court-panel {
+  fill: color-mix(in oklab, var(--paper-2) 70%, oklch(1 0 0));
+  stroke: color-mix(in oklab, var(--gold-deep) 70%, transparent);
+  stroke-width: 1.1;
+}
+
+.court-panel-inner {
+  fill: none;
+  stroke: color-mix(in oklab, var(--gold-deep) 40%, transparent);
+  stroke-width: 0.6;
+}
+
+.court-split {
+  stroke: color-mix(in oklab, var(--gold-deep) 45%, transparent);
+  stroke-width: 0.7;
+}
+
+.crown {
+  fill: none;
+  stroke: var(--gold-deep);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.crown.thin {
+  stroke-width: 0.9;
+  opacity: 0.7;
+}
+
+.crown-fill {
+  stroke: var(--gold-deep);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+
+.crown-dot {
+  fill: var(--gold-deep);
+}
+
+.court-letter {
+  font-family: ui-serif, Georgia, 'Times New Roman', serif;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.card[data-color='red'] .court-letter {
+  fill: var(--ink-red);
+}
+
+.card[data-color='black'] .court-letter {
+  fill: var(--ink-black);
+}
+
+.court-tint {
+  fill: oklch(0.5 0.1 260 / 0.06);
+}
+
+.card[data-color='red'] .court-tint {
+  fill: color-mix(in oklab, var(--ink-red) 9%, transparent);
+}
+
+
+/* -------------------------------------------------------------------- back */
+
+.card__back {
+  transform: rotateY(180deg);
+  background: linear-gradient(150deg, oklch(0.99 0.004 95), oklch(0.94 0.01 92));
+  padding: calc(var(--card-w) * 0.055);
+}
+
+.card__back-art,
+.mini-back {
+  position: absolute;
+  inset: calc(var(--card-w) * 0.05);
+  border-radius: calc(var(--radius-card) * 0.7);
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.25);
+}
+
+.mini-back {
+  position: relative;
+  inset: auto;
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+}
+
+/* aurora */
+[data-back='aurora'] .card__back-art,
+.mini-back[data-back-preview='aurora'] {
+  background:
+    radial-gradient(120% 90% at 20% 10%, oklch(0.7 0.19 250 / 0.95), transparent 60%),
+    radial-gradient(100% 80% at 85% 25%, oklch(0.72 0.2 320 / 0.9), transparent 62%),
+    radial-gradient(120% 100% at 60% 95%, oklch(0.72 0.17 195 / 0.9), transparent 65%),
+    linear-gradient(160deg, oklch(0.28 0.09 268), oklch(0.18 0.07 280));
+}
+
+[data-back='aurora'] .card__back-art::after,
+.mini-back[data-back-preview='aurora']::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    repeating-linear-gradient(45deg, oklch(1 0 0 / 0.16) 0 1.5px, transparent 1.5px 6px),
+    repeating-linear-gradient(-45deg, oklch(0.1 0 0 / 0.14) 0 1.5px, transparent 1.5px 6px);
+  mix-blend-mode: overlay;
+}
+
+/* lattice */
+[data-back='lattice'] .card__back-art,
+.mini-back[data-back-preview='lattice'] {
+  background:
+    repeating-linear-gradient(45deg, oklch(0.86 0.13 84 / 0.5) 0 1.5px, transparent 1.5px 9px),
+    repeating-linear-gradient(-45deg, oklch(0.86 0.13 84 / 0.5) 0 1.5px, transparent 1.5px 9px),
+    linear-gradient(150deg, oklch(0.32 0.07 265), oklch(0.19 0.05 268));
+}
+
+/* bloom */
+[data-back='bloom'] .card__back-art,
+.mini-back[data-back-preview='bloom'] {
+  background:
+    radial-gradient(circle at 50% 50%, oklch(0.95 0.05 20 / 0.9) 0 1.6px, transparent 2px),
+    radial-gradient(circle at 50% 50%, oklch(0.75 0.19 15 / 0.55) 0 3.4px, transparent 4px),
+    linear-gradient(150deg, oklch(0.42 0.16 18), oklch(0.26 0.11 12));
+  background-size:
+    11px 11px,
+    22px 22px,
+    100% 100%;
+  background-position:
+    0 0,
+    5px 5px,
+    0 0;
+}
+
+/* noir */
+[data-back='noir'] .card__back-art,
+.mini-back[data-back-preview='noir'] {
+  background:
+    radial-gradient(circle at 50% 50%, oklch(0.86 0.13 84 / 0.62) 0 1.2px, transparent 1.8px) 0 0 /
+      13px 13px,
+    radial-gradient(circle at 50% 50%, oklch(0.86 0.13 84 / 0.14) 0 3.6px, transparent 4.2px) 6.5px
+      6.5px / 13px 13px,
+    radial-gradient(75% 58% at 50% 45%, oklch(0.31 0.02 265), transparent 72%),
+    linear-gradient(150deg, oklch(0.2 0.012 265), oklch(0.12 0.01 265));
+  box-shadow:
+    inset 0 0 0 1px oklch(1 0 0 / 0.2),
+    inset 0 0 0 5px oklch(0.12 0.01 265),
+    inset 0 0 0 6px oklch(0.84 0.13 84 / 0.7);
+}
+
+/* ------------------------------------------------------------- interaction */
+
+/* Cards fully covered by another card contribute only a hairline edge — without
+   this, twenty stacked drop-shadows smear a dark blob under the stock. */
+.card.is-buried .card__face {
+  box-shadow: 0 1px 1px oklch(0 0 0 / 0.16);
+}
+
+.card.is-dragging {
+  transition: none;
+  cursor: grabbing;
+}
+
+.card.is-dragging .card__face {
+  box-shadow: var(--shadow-lift);
+}
+
+.card.is-dragging .card__inner {
+  transform: rotateY(0deg) scale(1.045);
+}
+
+.cards.is-dragging-any .card:not(.is-dragging) {
+  pointer-events: none;
+}
+
+.card.is-up {
+  cursor: grab;
+}
+
+.card.is-target-top .card__face {
+  box-shadow:
+    var(--shadow-card),
+    0 0 0 2px color-mix(in oklab, var(--accent) 70%, transparent),
+    0 0 26px -2px color-mix(in oklab, var(--accent) 55%, transparent);
+}
+
+.card.is-hint .card__face,
+.card.is-hint-target .card__face {
+  animation: hint-pulse 1.4s var(--ease-soft);
+}
+
+@keyframes hint-pulse {
+  0%,
+  100% {
+    box-shadow: var(--shadow-card);
+  }
+  25%,
+  75% {
+    box-shadow:
+      var(--shadow-card),
+      0 0 0 3px color-mix(in oklab, var(--gold) 85%, transparent),
+      0 0 30px 2px color-mix(in oklab, var(--gold) 55%, transparent);
+  }
+}
