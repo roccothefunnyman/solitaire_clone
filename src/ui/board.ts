@@ -21,6 +21,7 @@ interface DragState {
   pointerId: number;
   from: PileId;
   index: number;
+  cardId: string;
   cards: HTMLElement[];
   origins: Placement[];
   startX: number;
@@ -32,6 +33,35 @@ interface DragState {
 }
 
 const CLICK_SLOP = 7;
+/** Matches the usual OS double-click window. */
+export const DOUBLE_CLICK_MS = 400;
+
+export interface TapMemory {
+  cardId: string;
+  at: number;
+}
+
+export const NO_TAP: TapMemory = { cardId: '', at: 0 };
+
+/**
+ * Whether a click/tap that didn't turn into a drag should send the card home.
+ *
+ * A double-click is two clicks on the *same* card: a board-wide timestamp alone
+ * would let a click on card A arm a click on card B. The pair is consumed on a
+ * match so a third rapid click starts fresh rather than firing again.
+ */
+export function tapDecision(
+  prev: TapMemory,
+  cardId: string,
+  now: number,
+  isTouch: boolean,
+): { auto: boolean; next: TapMemory } {
+  const quickSecond = prev.cardId === cardId && now - prev.at < DOUBLE_CLICK_MS;
+  return {
+    auto: isTouch || quickSecond,
+    next: quickSecond ? NO_TAP : { cardId, at: now },
+  };
+}
 
 export class Board {
   private cardEls = new Map<string, HTMLElement>();
@@ -45,8 +75,7 @@ export class Board {
   private cardH = 140;
   private fanDown = 0.145;
   private fanUp = 0.255;
-  private lastTapAt = 0;
-  private suppressClickUntil = 0;
+  private lastTap: TapMemory = NO_TAP;
 
   constructor(
     private store: Store,
@@ -291,14 +320,9 @@ export class Board {
       }
     });
 
-    this.layer.addEventListener('dblclick', (e) => {
-      const el = (e.target as HTMLElement).closest('.card') as HTMLElement | null;
-      if (!el?.dataset.id) return;
-      const at = this.locate(el.dataset.id);
-      if (!at) return;
-      if (at.pile === 'stock') this.store.draw();
-      else this.store.auto(at.pile, at.index);
-    });
+    // No `dblclick` listener: the gesture is owned solely by onPointerUp. Two
+    // handlers for one physical double-click fired auto-move twice, and the second
+    // pass could pull the card straight back off the foundation.
 
     this.layer.addEventListener('contextmenu', (e) => {
       const el = (e.target as HTMLElement).closest('.card') as HTMLElement | null;
@@ -333,6 +357,7 @@ export class Board {
       pointerId: e.pointerId,
       from: at.pile,
       index: at.index,
+      cardId: el.dataset.id,
       cards: els,
       origins,
       startX: e.clientX,
@@ -377,14 +402,14 @@ export class Board {
     this.highlightTarget(null);
 
     if (!drag.moved) {
-      const isTouch = e.pointerType !== 'mouse';
-      const now = performance.now();
-      const quickSecond = now - this.lastTapAt < 400;
-      this.lastTapAt = now;
-      if (isTouch || quickSecond) {
-        if (now > this.suppressClickUntil) this.store.auto(drag.from, drag.index);
-        this.suppressClickUntil = now + 220;
-      }
+      const { auto, next } = tapDecision(
+        this.lastTap,
+        drag.cardId,
+        performance.now(),
+        e.pointerType !== 'mouse',
+      );
+      this.lastTap = next;
+      if (auto) this.store.auto(drag.from, drag.index);
       this.render(false);
       return;
     }

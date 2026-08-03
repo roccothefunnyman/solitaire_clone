@@ -54,7 +54,11 @@ function updateHud(): void {
   $('#chipTime').classList.toggle('is-hidden', !state.options.timed);
 
   ($('#btnUndo') as HTMLButtonElement).disabled = !store.canUndo();
-  $('#btnAuto').classList.toggle('is-hidden', !store.canAutoFinish() || autoTimer !== null);
+  const auto = $('#btnAuto');
+  const running = autoTimer !== null;
+  auto.classList.toggle('is-hidden', !store.canAutoFinish() && !running);
+  auto.querySelector('span')!.textContent = running ? 'Stop' : 'Auto-finish';
+  auto.title = running ? 'Stop auto-finish (A)' : 'Auto-finish (A)';
 }
 
 function applyPrefs(prefs: Prefs): void {
@@ -193,17 +197,26 @@ function showWinDialog(): void {
 
 /* ------------------------------------------------------------- auto-finish */
 
+/** Backstop only — nextAutoFinishMove halts on its own; this caps any future regression. */
+const AUTO_STEP_LIMIT = 400;
+let autoSteps = 0;
+
 function startAuto(): void {
-  if (autoTimer !== null) return;
-  $('#btnAuto').classList.add('is-hidden');
+  if (autoTimer !== null) {
+    stopAuto();
+    return;
+  }
+  autoSteps = 0;
   autoTimer = window.setInterval(() => {
-    if (!store.autoFinishStep() || store.state.won) stopAuto();
+    if (++autoSteps > AUTO_STEP_LIMIT || !store.autoFinishStep() || store.state.won) stopAuto();
   }, 90);
+  updateHud();
 }
 
 function stopAuto(): void {
   if (autoTimer !== null) clearInterval(autoTimer);
   autoTimer = null;
+  updateHud();
 }
 
 /* --------------------------------------------------------------- controls */
@@ -322,7 +335,8 @@ window.addEventListener('keydown', (e) => {
       store.restartDeal();
       break;
     case 'a':
-      if (store.canAutoFinish()) startAuto();
+      // Always reachable while running, so the key can stop it too.
+      if (autoTimer !== null || store.canAutoFinish()) startAuto();
       break;
     case ' ':
     case 'enter':

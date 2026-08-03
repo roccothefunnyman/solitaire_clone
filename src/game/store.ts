@@ -58,13 +58,15 @@ const DEFAULT_STATS: Stats = {
   totalTimeMs: 0,
 };
 
-function load<T>(key: string, fallback: T): T {
+/** Always returns a fresh object — handing back `fallback` itself would let the
+ *  caller mutate the DEFAULT_* constants in place. */
+function load<T extends object>(key: string, fallback: T): T {
   try {
     const raw = localStorage.getItem(key);
-    if (!raw) return fallback;
+    if (!raw) return { ...fallback };
     return { ...fallback, ...(JSON.parse(raw) as T) };
   } catch {
-    return fallback;
+    return { ...fallback };
   }
 }
 
@@ -104,6 +106,7 @@ export class Store {
   private runningSince: number | null = null;
   private timer: number | null = null;
   private countedPlayed = false;
+  private countedWin = false;
 
   constructor() {
     this.prefs = load(PREFS_KEY, DEFAULT_PREFS);
@@ -217,6 +220,7 @@ export class Store {
     this.elapsedMs = 0;
     this.runningSince = performance.now();
     this.countedPlayed = false;
+    this.countedWin = false;
     this.startTimer();
     this.persist();
     this.emit({ type: 'deal', state: this.state });
@@ -228,6 +232,8 @@ export class Store {
     this.state = deal(seed, this.optionsFromPrefs());
     this.elapsedMs = 0;
     this.runningSince = performance.now();
+    this.countedPlayed = false;
+    this.countedWin = false;
     this.startTimer();
     this.persist();
     this.emit({ type: 'deal', state: this.state });
@@ -258,7 +264,10 @@ export class Store {
   undo(): void {
     const previous = this.history.pop();
     if (!previous) return;
+    const wasWon = this.state.won;
     this.state = previous;
+    // Winning stops the clock; undoing back into a live game must restart it.
+    if (wasWon && !this.state.won) this.startTimer();
     this.persist();
     this.emit({ type: 'undo', state: this.state });
   }
@@ -329,19 +338,25 @@ export class Store {
     const time = this.elapsed();
     const finalScore = this.finalScore();
 
-    this.stats.played += this.countedPlayed ? 0 : 1;
-    this.countedPlayed = true;
-    this.stats.won += 1;
-    this.stats.streak += 1;
-    this.stats.bestStreak = Math.max(this.stats.bestStreak, this.stats.streak);
-    this.stats.totalTimeMs += time;
-    if (this.stats.bestTimeMs === null || time < this.stats.bestTimeMs) this.stats.bestTimeMs = time;
-    if (this.state.options.scoring !== 'none') {
-      if (this.stats.bestScore === null || finalScore > this.stats.bestScore) {
-        this.stats.bestScore = finalScore;
+    // Undoing the winning move and replaying it must not bank the win twice.
+    if (!this.countedWin) {
+      this.countedWin = true;
+      this.stats.played += this.countedPlayed ? 0 : 1;
+      this.countedPlayed = true;
+      this.stats.won += 1;
+      this.stats.streak += 1;
+      this.stats.bestStreak = Math.max(this.stats.bestStreak, this.stats.streak);
+      this.stats.totalTimeMs += time;
+      if (this.stats.bestTimeMs === null || time < this.stats.bestTimeMs) {
+        this.stats.bestTimeMs = time;
       }
+      if (this.state.options.scoring !== 'none') {
+        if (this.stats.bestScore === null || finalScore > this.stats.bestScore) {
+          this.stats.bestScore = finalScore;
+        }
+      }
+      save(STATS_KEY, this.stats);
     }
-    save(STATS_KEY, this.stats);
     try {
       localStorage.removeItem(SAVE_KEY);
     } catch {
@@ -372,7 +387,17 @@ export class Store {
   }
 
   resetStats(): void {
-    this.stats = { ...DEFAULT_STATS };
+    this.stats = {
+      played: 0,
+      won: 0,
+      streak: 0,
+      bestStreak: 0,
+      bestTimeMs: null,
+      bestScore: null,
+      totalTimeMs: 0,
+    };
+    this.countedPlayed = false;
+    this.countedWin = false;
     save(STATS_KEY, this.stats);
   }
 }

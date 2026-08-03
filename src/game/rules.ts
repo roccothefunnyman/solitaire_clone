@@ -279,6 +279,11 @@ export function moveCards(
 
 /** Best foundation for a card, or null when it cannot be placed. */
 export function findFoundationFor(state: GameState, card: Card): PileId | null {
+  // A card already home is not looking for a foundation. Without this an ace sitting
+  // on one foundation would "move" to any other empty one, scoring on every hop.
+  for (const id of FOUNDATIONS) {
+    if (topOf(state.piles[id])?.id === card.id) return null;
+  }
   for (const id of FOUNDATIONS) {
     if (canPlaceOnFoundation(card, state.piles[id])) return id;
   }
@@ -297,20 +302,22 @@ export function findTableauFor(state: GameState, from: PileId, index: number): P
   return null;
 }
 
-/** Double-click / right-click behaviour: send the card to a foundation if possible. */
+/**
+ * Double-click / right-click behaviour: send the card home, or do nothing.
+ *
+ * Strictly foundation-only, like Windows. It never relocates a card within the
+ * tableau and never takes a card back off a foundation — those are drag-only, so
+ * a stray or repeated click can't dismantle a position.
+ */
 export function autoMove(state: GameState, from: PileId, index: number): MoveResult | null {
+  if (pileKind(from) === 'foundation') return null;
   const pile = state.piles[from];
+  if (index !== pile.length - 1) return null;
   const card = pile[index];
   if (!card || !card.faceUp) return null;
-  if (index === pile.length - 1) {
-    const foundation = findFoundationFor(state, card);
-    if (foundation && canDrop(state, from, index, foundation)) {
-      return moveCards(state, from, index, foundation);
-    }
-  }
-  const tableau = findTableauFor(state, from, index);
-  if (tableau) return moveCards(state, from, index, tableau);
-  return null;
+  const foundation = findFoundationFor(state, card);
+  if (!foundation || !canDrop(state, from, index, foundation)) return null;
+  return moveCards(state, from, index, foundation);
 }
 
 export function checkWon(state: GameState): boolean {
@@ -400,9 +407,21 @@ export function nextAutoFinishMove(state: GameState): { from: PileId; index: num
     if (to && (!best || card.rank < best.rank)) best = { from, index, to, rank: card.rank };
   }
   if (best) return { from: best.from, index: best.index, to: best.to };
-  if (state.piles['stock'].length > 0) return { from: 'stock', index: -1, to: 'waste' };
-  if (state.piles['waste'].length > 0 && state.passes < maxRecycles(state.options)) {
-    return { from: 'stock', index: -1, to: 'waste' };
+
+  // Only draw when drawing can actually reach a foundation-playable card. Nothing
+  // but the stock and waste changes while we draw, so a repeated stock+waste
+  // configuration proves the cycle is closed and there is nothing left to find.
+  // Without this the unlimited redeals of standard scoring spin forever.
+  const probe = cloneState(state);
+  const seen = new Set<string>();
+  for (;;) {
+    const key = `${probe.piles['stock'].map((c) => c.id).join(',')}|${probe.piles['waste']
+      .map((c) => c.id)
+      .join(',')}`;
+    if (seen.has(key)) return null;
+    seen.add(key);
+    if (!drawFromStock(probe)) return null;
+    const top = topOf(probe.piles['waste']);
+    if (top && findFoundationFor(probe, top)) return { from: 'stock', index: -1, to: 'waste' };
   }
-  return null;
 }

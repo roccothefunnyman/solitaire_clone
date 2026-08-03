@@ -8,7 +8,8 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --port 4173",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-transform-types --disable-warning=ExperimentalWarning --import ./test/register.mjs --test \"test/*.test.ts\""
   },
   "devDependencies": {
     "lightningcss": "^1.33.0",
