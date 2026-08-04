@@ -98,6 +98,7 @@ function syncControls(prefs: Prefs): void {
     el.classList.toggle('is-on', on);
     el.setAttribute('aria-checked', String(on));
   };
+  setSwitch('#optWinnable', prefs.winnableOnly);
   setSwitch('#optTimed', prefs.timed);
   setSwitch('#optSound', prefs.sound);
   setSwitch('#optMotion', prefs.reducedMotion);
@@ -311,6 +312,7 @@ bindGroup('#optTheme', (v) => store.setPrefs({ theme: v }));
 bindGroup('#optBack', (v) => store.setPrefs({ cardBack: v }));
 
 const toggles: Array<[string, keyof Prefs]> = [
+  ['#optWinnable', 'winnableOnly'],
   ['#optTimed', 'timed'],
   ['#optSound', 'sound'],
   ['#optMotion', 'reducedMotion'],

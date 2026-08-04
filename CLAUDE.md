@@ -30,6 +30,7 @@ there are no image or audio assets.
 | --- | --- |
 | `src/game/deck.ts` | Card model, seeded shuffle |
 | `src/game/rules.ts` | Pure Klondike state machine: legality, moves, scoring, hints |
+| `src/game/solver.ts` | Heuristic playouts used to deal only winnable hands |
 | `src/game/store.ts` | Undo stack, timer, localStorage save/prefs/stats, event bus |
 | `src/ui/board.ts` | Slot geometry, card positioning, drag & drop, hit testing |
 | `src/ui/cardArt.ts` | SVG card faces — pip layouts and court ornaments |
@@ -42,6 +43,13 @@ there are no image or audio assets.
 
 - **Rules changes go in `rules.ts`, which is pure** — it takes a `GameState` and mutates it,
   with no DOM or storage access. Keep it that way; `store.ts` is where side effects belong.
+- **Deals are filtered, not rigged.** `winnableOnly` (on by default) reshuffles until a
+  heuristic player can win the hand, because a true random draw-three shuffle is winnable
+  by a person maybe one time in seven — which is not what "plays like Windows" means to
+  anyone who grew up on it. The shuffle underneath stays uniform and untouched; the filter
+  only chooses which shuffles to hand out, and it runs through the real rules so it can
+  never disagree with the game about what is legal. Budget it: dealing must stay under the
+  ~900ms deal animation.
 - **The board never rebuilds its DOM mid-game.** One element per card lives for the whole deal
   and is repositioned with `transform`, so CSS transitions animate every move for free. If you
   find yourself re-rendering card HTML on a move, that's the wrong layer.

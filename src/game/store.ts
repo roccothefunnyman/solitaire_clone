@@ -1,4 +1,5 @@
 import { randomSeed } from './deck';
+import { findWinnableSeed } from './solver';
 import {
   ALL_PILES,
   type DrawCount,
@@ -28,6 +29,8 @@ export interface Prefs extends Options {
   sound: boolean;
   reducedMotion: boolean;
   leftHanded: boolean;
+  /** Deal only hands a reasonable player can actually win. */
+  winnableOnly: boolean;
 }
 
 export interface Stats {
@@ -49,6 +52,7 @@ export const DEFAULT_PREFS: Prefs = {
   sound: true,
   reducedMotion: false,
   leftHanded: false,
+  winnableOnly: true,
 };
 
 const DEFAULT_STATS: Stats = {
@@ -151,6 +155,9 @@ export class Store {
     if (!DRAWS.includes(this.prefs.draw)) this.prefs.draw = DEFAULT_PREFS.draw;
     if (!SCORINGS.includes(this.prefs.scoring)) this.prefs.scoring = DEFAULT_PREFS.scoring;
     if (typeof this.prefs.timed !== 'boolean') this.prefs.timed = DEFAULT_PREFS.timed;
+    if (typeof this.prefs.winnableOnly !== 'boolean') {
+      this.prefs.winnableOnly = DEFAULT_PREFS.winnableOnly;
+    }
     this.stats = load(STATS_KEY, DEFAULT_STATS);
 
     const restored = this.loadSave();
@@ -164,7 +171,8 @@ export class Store {
       // player is not actually playing and cannot click their way out of.
       this.adoptOptions(this.state.options);
     } else {
-      this.state = deal(randomSeed(), this.optionsFromPrefs());
+      const options = this.optionsFromPrefs();
+      this.state = deal(this.pickSeed(options), options);
       this.countedPlayed = false;
     }
     this.startTimer();
@@ -275,10 +283,17 @@ export class Store {
 
   /* ------------------------------------------------------------- lifecycle */
 
-  newGame(seed = randomSeed()): void {
+  /** A random deal, or a filtered one when the player wants winnable hands. */
+  private pickSeed(options: Options): number {
+    if (!this.prefs.winnableOnly) return randomSeed();
+    return findWinnableSeed(options, randomSeed, () => performance.now()).seed;
+  }
+
+  newGame(seed?: number): void {
     if (!this.countedPlayed && this.state.moves > 0 && !this.state.won) this.recordLoss();
     this.history = [];
-    this.state = deal(seed, this.optionsFromPrefs());
+    const options = this.optionsFromPrefs();
+    this.state = deal(seed ?? this.pickSeed(options), options);
     this.elapsedMs = 0;
     this.runningSince = performance.now();
     this.countedPlayed = false;
