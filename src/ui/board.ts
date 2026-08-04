@@ -1,5 +1,14 @@
 import type { Card } from '../game/deck';
-import { ALL_PILES, FOUNDATIONS, TABLEAUS, type PileId, canGrab, canDrop, pileKind } from '../game/rules';
+import {
+  ALL_PILES,
+  FOUNDATIONS,
+  TABLEAUS,
+  type PileId,
+  canDrop,
+  canGrab,
+  canRecycle,
+  pileKind,
+} from '../game/rules';
 import type { Store } from '../game/store';
 import { createCardElement } from './cardArt';
 import { sound } from './sound';
@@ -248,11 +257,12 @@ export class Board {
       if (el) el.classList.toggle('is-up', card.faceUp);
     }
 
+    // "Exhausted" means the stock will never come back — either nothing is left at all,
+    // or the redeal limit is spent. Showing the recycle arrow in that state made a dead
+    // stock look identical to one more click away from a fresh pass.
     const stockEmpty = state.piles['stock'].length === 0;
     this.slotEls.get('stock')!.classList.toggle('is-empty', stockEmpty);
-    this.slotEls
-      .get('stock')!
-      .classList.toggle('is-exhausted', stockEmpty && state.piles['waste'].length === 0);
+    this.slotEls.get('stock')!.classList.toggle('is-exhausted', stockEmpty && !canRecycle(state));
 
     if (instant) {
       void this.layer.offsetHeight;

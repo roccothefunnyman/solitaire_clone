@@ -2,6 +2,7 @@ import './styles/theme.css';
 import './styles/cards.css';
 import './styles/app.css';
 
+import { canRecycle } from './game/rules';
 import { Store, type Prefs } from './game/store';
 import { Board } from './ui/board';
 import { sound } from './ui/sound';
@@ -47,7 +48,12 @@ function updateHud(): void {
   $('#scoreValue').textContent = String(store.displayScore());
   $('#timeValue').textContent = formatTime(store.elapsed());
   $('#movesValue').textContent = String(state.moves);
-  $('#drawValue').textContent = state.options.draw === 1 ? 'One' : 'Three';
+  // Always show the mode actually being played, scoring included — a player in Vegas
+  // had no on-screen clue beyond a negative score.
+  const mode = [state.options.draw === 1 ? 'One' : 'Three'];
+  if (state.options.scoring === 'vegas') mode.push('Vegas');
+  else if (state.options.scoring === 'none') mode.push('No score');
+  $('#drawValue').textContent = mode.join(' · ');
   $('#dealLabel').textContent = `Deal #${(state.seed % 100000).toString().padStart(5, '0')}`;
 
   $('#chipScore').classList.toggle('is-hidden', state.options.scoring === 'none');
@@ -134,6 +140,14 @@ store.subscribe((event) => {
 
     case 'reject':
       board.pulseInvalid(event.from);
+      sound.play('reject');
+      if (event.from === 'stock' && !canRecycle(store.state)) {
+        toast(
+          store.state.piles['stock'].length === 0 && store.state.piles['waste'].length === 0
+            ? 'The deck is empty.'
+            : 'No redeals left — Vegas allows a limited number of passes.',
+        );
+      }
       updateHud();
       break;
 

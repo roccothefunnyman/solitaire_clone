@@ -1,9 +1,12 @@
 import { randomSeed } from './deck';
 import {
+  ALL_PILES,
+  type DrawCount,
   type GameState,
   type MoveResult,
   type Options,
   type PileId,
+  type ScoringMode,
   autoMove,
   canAutoFinish,
   checkWon,
@@ -70,6 +73,38 @@ function load<T extends object>(key: string, fallback: T): T {
   }
 }
 
+const DRAWS: DrawCount[] = [1, 3];
+const SCORINGS: ScoringMode[] = ['standard', 'vegas', 'none'];
+
+function validOptions(value: unknown): value is Options {
+  if (!value || typeof value !== 'object') return false;
+  const o = value as Options;
+  return (
+    DRAWS.includes(o.draw) && SCORINGS.includes(o.scoring) && typeof o.timed === 'boolean'
+  );
+}
+
+/** A save file is only worth restoring if it is a complete, legal-looking 52-card game. */
+function validSave(value: unknown): value is SaveFile {
+  const file = value as SaveFile | null;
+  if (!file?.state || typeof file.state !== 'object') return false;
+  if (!validOptions(file.state.options)) return false;
+  const piles = file.state.piles;
+  if (!piles || typeof piles !== 'object') return false;
+  let count = 0;
+  const ids = new Set<string>();
+  for (const id of ALL_PILES) {
+    const pile = piles[id];
+    if (!Array.isArray(pile)) return false;
+    for (const card of pile) {
+      if (!card || typeof card.id !== 'string') return false;
+      ids.add(card.id);
+      count++;
+    }
+  }
+  return count === 52 && ids.size === 52;
+}
+
 function save(key: string, value: unknown): void {
   try {
     localStorage.setItem(key, JSON.stringify(value));
@@ -110,6 +145,11 @@ export class Store {
 
   constructor() {
     this.prefs = load(PREFS_KEY, DEFAULT_PREFS);
+    // Stored prefs are just JSON someone could have edited; never let a bad value
+    // reach the engine as a game option.
+    if (!DRAWS.includes(this.prefs.draw)) this.prefs.draw = DEFAULT_PREFS.draw;
+    if (!SCORINGS.includes(this.prefs.scoring)) this.prefs.scoring = DEFAULT_PREFS.scoring;
+    if (typeof this.prefs.timed !== 'boolean') this.prefs.timed = DEFAULT_PREFS.timed;
     this.stats = load(STATS_KEY, DEFAULT_STATS);
 
     const restored = this.loadSave();
@@ -117,6 +157,11 @@ export class Store {
       this.state = restored.state;
       this.elapsedMs = restored.elapsedMs;
       this.countedPlayed = restored.countedPlayed;
+      // The settings dialog reads `prefs`, the game reads `state.options`, and they
+      // live in different storage keys. A second tab can leave them disagreeing, so
+      // the restored game always wins — otherwise the dialog advertises a mode the
+      // player is not actually playing and cannot click their way out of.
+      this.adoptOptions(this.state.options);
     } else {
       this.state = deal(randomSeed(), this.optionsFromPrefs());
       this.countedPlayed = false;
@@ -139,12 +184,25 @@ export class Store {
     return { draw: this.prefs.draw, scoring: this.prefs.scoring, timed: this.prefs.timed };
   }
 
+  /** Point the saved prefs at the mode actually being played. */
+  private adoptOptions(options: Options): void {
+    if (
+      this.prefs.draw === options.draw &&
+      this.prefs.scoring === options.scoring &&
+      this.prefs.timed === options.timed
+    ) {
+      return;
+    }
+    this.prefs = { ...this.prefs, ...options };
+    save(PREFS_KEY, this.prefs);
+  }
+
   private loadSave(): SaveFile | null {
     try {
       const raw = localStorage.getItem(SAVE_KEY);
       if (!raw) return null;
       const parsed = JSON.parse(raw) as SaveFile;
-      if (!parsed?.state?.piles?.['stock']) return null;
+      if (!validSave(parsed)) return null;
       if (parsed.state.won) return null;
       return parsed;
     } catch {
@@ -241,8 +299,11 @@ export class Store {
 
   setPrefs(patch: Partial<Prefs>): void {
     const optionKeys: Array<keyof Options> = ['draw', 'scoring', 'timed'];
+    // Compared against the LIVE game, not against prefs: if the two ever disagree,
+    // clicking the option that matches prefs must still re-deal, or the player is
+    // stuck in a mode the dialog refuses to admit to.
     const changesOptions = optionKeys.some(
-      (k) => patch[k] !== undefined && patch[k] !== this.prefs[k],
+      (k) => patch[k] !== undefined && patch[k] !== this.state.options[k],
     );
     this.prefs = { ...this.prefs, ...patch };
     save(PREFS_KEY, this.prefs);
