@@ -383,14 +383,31 @@ export function findHints(state: GameState): Hint[] {
   return hints.sort((a, b) => b.weight - a.weight);
 }
 
-/** Auto-finish becomes available once nothing is hidden in the tableau. */
+/**
+ * Auto-finish is offered only when it can actually finish. Nothing hidden in the
+ * tableau is necessary but not sufficient: the finisher only plays pile tops and draws,
+ * so in draw-three it could otherwise stall half way and leave the board worse.
+ */
 export function canAutoFinish(state: GameState): boolean {
   if (state.won) return false;
   for (const id of TABLEAUS) {
     if (state.piles[id].some((c) => !c.faceUp)) return false;
   }
   const remaining = FOUNDATIONS.reduce((n, id) => n + state.piles[id].length, 0);
-  return remaining < 52;
+  if (remaining >= 52) return false;
+
+  const probe = cloneState(state);
+  for (let step = 0; step < 400; step++) {
+    const next = nextAutoFinishMove(probe);
+    if (!next) return false;
+    const ok =
+      next.from === 'stock'
+        ? drawFromStock(probe) !== null
+        : moveCards(probe, next.from, next.index, next.to) !== null;
+    if (!ok) return false;
+    if (probe.won) return true;
+  }
+  return false;
 }
 
 /** Next single step of the auto-finish sequence, or null when stuck/complete. */

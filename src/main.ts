@@ -191,7 +191,9 @@ function celebrate(): void {
 
 let winShown = false;
 function showWinDialog(): void {
-  if (winShown) return;
+  // The cascade's skip handler can land after a keypress already dealt a new game,
+  // which would put the last game's stats over a live board.
+  if (winShown || !store.state.won) return;
   winShown = true;
   const dialog = $<HTMLDialogElement>('#winDialog');
   const rows: Array<[string, string]> = [['Moves', String(store.state.moves)]];
@@ -324,8 +326,16 @@ for (const [sel, key] of toggles) {
 
 /* -------------------------------------------------------------- keyboard */
 
+/** Abandoning a game in progress is unrecoverable — undo history goes with it. */
+function confirmAbandon(question: string): boolean {
+  if (store.state.moves === 0 || store.state.won) return true;
+  return window.confirm(question);
+}
+
 window.addEventListener('keydown', (e) => {
   if (document.querySelector('dialog[open]') && e.key !== 'Escape') return;
+  // A held key used to re-deal over and over.
+  if (e.repeat) return;
   const key = e.key.toLowerCase();
   if ((e.ctrlKey || e.metaKey) && key === 'z') {
     e.preventDefault();
@@ -334,7 +344,9 @@ window.addEventListener('keydown', (e) => {
   }
   if (e.ctrlKey || e.metaKey || e.altKey) return;
   switch (key) {
+    case 'f2':
     case 'n':
+      if (!confirmAbandon('Start a new deal? This game will count as a loss.')) break;
       winShown = false;
       store.newGame();
       break;
@@ -345,6 +357,7 @@ window.addEventListener('keydown', (e) => {
       $('#btnHint').click();
       break;
     case 'r':
+      if (!confirmAbandon('Restart this deal from the beginning?')) break;
       winShown = false;
       store.restartDeal();
       break;

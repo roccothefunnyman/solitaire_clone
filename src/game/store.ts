@@ -142,6 +142,7 @@ export class Store {
   private timer: number | null = null;
   private countedPlayed = false;
   private countedWin = false;
+  private autoFinishCache: boolean | null = null;
 
   constructor() {
     this.prefs = load(PREFS_KEY, DEFAULT_PREFS);
@@ -211,6 +212,9 @@ export class Store {
   }
 
   private persist(): void {
+    // Every state change funnels through here, so this is the one place the
+    // auto-finish check needs re-evaluating.
+    this.autoFinishCache = null;
     const file: SaveFile = {
       state: this.state,
       elapsedMs: this.elapsed(),
@@ -298,7 +302,9 @@ export class Store {
   }
 
   setPrefs(patch: Partial<Prefs>): void {
-    const optionKeys: Array<keyof Options> = ['draw', 'scoring', 'timed'];
+    // `timed` is deliberately absent: it only affects scoring and the clock display,
+    // so it applies to the hand in progress instead of throwing the deal away.
+    const optionKeys: Array<keyof Options> = ['draw', 'scoring'];
     // Compared against the LIVE game, not against prefs: if the two ever disagree,
     // clicking the option that matches prefs must still re-deal, or the player is
     // stuck in a mode the dialog refuses to admit to.
@@ -307,6 +313,12 @@ export class Store {
     );
     this.prefs = { ...this.prefs, ...patch };
     save(PREFS_KEY, this.prefs);
+
+    if (patch.timed !== undefined && patch.timed !== this.state.options.timed) {
+      this.state.options.timed = patch.timed;
+      this.persist();
+    }
+
     this.emit({ type: 'prefs', prefs: this.prefs });
     if (changesOptions) this.newGame();
   }
@@ -376,8 +388,10 @@ export class Store {
     if (this.state.won) this.finishWin();
   }
 
+  /** Cached because the HUD asks every timer tick and the check simulates the finisher. */
   canAutoFinish(): boolean {
-    return canAutoFinish(this.state);
+    if (this.autoFinishCache === null) this.autoFinishCache = canAutoFinish(this.state);
+    return this.autoFinishCache;
   }
 
   /** One step of the auto-finish cascade. Returns false when there is nothing left. */

@@ -42,8 +42,12 @@ interface DragState {
 }
 
 const CLICK_SLOP = 7;
-/** Matches the usual OS double-click window. */
-export const DOUBLE_CLICK_MS = 400;
+/**
+ * Windows' default DoubleClickSpeed is 500ms and we cannot read the real setting from
+ * the browser, so match the default. Anything shorter silently ignores the double-clicks
+ * of people who click at a normal, unhurried pace.
+ */
+export const DOUBLE_CLICK_MS = 500;
 
 export interface TapMemory {
   cardId: string;

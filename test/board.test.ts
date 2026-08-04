@@ -26,7 +26,9 @@ test('a double-click on one card sends it home exactly once', () => {
 });
 
 test('a double-click fires once at every realistic click speed', () => {
-  for (const gap of [40, 60, 120, 200, 300, 399]) {
+  // Windows' default DoubleClickSpeed is 500ms; an unhurried but perfectly ordinary
+  // double-click lands well past 400ms and must still send the card home.
+  for (const gap of [40, 60, 120, 200, 300, 399, 420, 450, 490]) {
     const { autos } = replay([
       { cardId: 'spades-5', at: 500 },
       { cardId: 'spades-5', at: 500 + gap },
@@ -83,6 +85,13 @@ test('a double-click followed by a click on another card does not move that card
     ]);
     assert.deepEqual(autos, ['hearts-2'], `follow-up gap ${gap}ms`);
   }
+});
+
+test('a steady click rhythm connects instead of never registering', () => {
+  // The tap memory re-arms on every miss, so if the window is shorter than the
+  // player's natural rhythm, a metronomic double-click never fires at all.
+  const clicks = [0, 450, 900, 1350].map((at) => ({ cardId: 'hearts-2', at }));
+  assert.ok(replay(clicks).autos.length > 0, 'a 450ms rhythm never registered a double-click');
 });
 
 test('a single tap sends home on touch, where there is no double-tap convention', () => {

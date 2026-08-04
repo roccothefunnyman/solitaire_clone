@@ -149,6 +149,22 @@ test('choosing an option always re-deals when the live game disagrees', () => {
   assert.equal(store.state.options.draw, 3, 'clicking Draw three must escape draw-one');
 });
 
+test('toggling timed play keeps the deal instead of scrapping it', () => {
+  const store = new Store();
+  store.draw();
+  const seed = store.state.seed;
+  const moves = store.state.moves;
+  const played = store.stats.played;
+
+  store.setPrefs({ timed: !store.prefs.timed });
+
+  assert.equal(store.state.seed, seed, 'the deal must survive a timed-play toggle');
+  assert.equal(store.state.moves, moves, 'progress must survive a timed-play toggle');
+  assert.equal(store.stats.played, played, 'toggling the clock must not bank a loss');
+  assert.equal(store.state.options.timed, store.prefs.timed, 'the setting must apply live');
+  assert.ok(store.canUndo(), 'undo history must survive a timed-play toggle');
+});
+
 test('a corrupt or incomplete save is discarded rather than played', () => {
   const cases: Array<[string, unknown]> = [
     ['missing options', { state: { piles: { stock: [] } }, elapsedMs: 0, countedPlayed: false }],

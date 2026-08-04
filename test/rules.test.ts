@@ -223,7 +223,7 @@ test('auto-finish halts on a stuck board instead of cycling the stock forever', 
   state.piles['stock'] = makeDeck().filter((c) => !placed.has(c.id));
   assert.equal(allCards(state).length, 52, 'test fixture is a full deck');
 
-  assert.equal(canAutoFinish(state), true, 'the Auto button would be offered here');
+  assert.equal(canAutoFinish(state), false, 'a board that cannot finish must not offer the button');
   assert.equal(nextAutoFinishMove(state), null, 'must not offer an endless draw');
 
   const { halted, steps } = driveAutoFinish(state);
@@ -249,6 +249,72 @@ test('auto-finish always halts, across many all-face-up layouts', () => {
       assert.equal(allCards(state).length, 52, `cards lost: seed ${seed}, draw ${draw}`);
     }
   }
+});
+
+test('auto-finish is only offered when it can actually finish', () => {
+  // Nothing face down, so the old check offered the button — but the finisher only
+  // plays pile tops and draws, and here the aces are buried under kings forever.
+  const stuck = emptyState();
+  const buried: Array<[Suit, Suit]> = [
+    ['spades', 'hearts'],
+    ['hearts', 'spades'],
+    ['diamonds', 'clubs'],
+    ['clubs', 'diamonds'],
+  ];
+  buried.forEach(([aceSuit, kingSuit], i) => {
+    stuck.piles[TABLEAUS[i]] = [card(aceSuit, 1), card(kingSuit, 13)];
+  });
+  const placed = new Set(allCards(stuck).map((c) => c.id));
+  stuck.piles['stock'] = makeDeck().filter((c) => !placed.has(c.id));
+  assert.equal(canAutoFinish(stuck), false, 'must not offer a button that cannot finish');
+
+  // A board it genuinely can finish is still offered.
+  const winnable = emptyState({ draw: 1, scoring: 'standard', timed: false });
+  for (let rank = 13; rank >= 1; rank--) {
+    SUITS.forEach((suit, i) => winnable.piles[TABLEAUS[i]].push(card(suit, rank)));
+  }
+  assert.equal(canAutoFinish(winnable), true, 'a finishable board must still offer it');
+});
+
+test('whenever auto-finish is offered, running it wins the game', () => {
+  let offered = 0;
+  let declined = 0;
+
+  for (let seed = 0; seed < 400; seed++) {
+    for (const draw of [1, 3] as const) {
+      const rng = makeRng(seed * 2 + draw);
+      const state = emptyState({ draw, scoring: 'standard', timed: false });
+
+      // Ranks descend down every column, so pile tops are the low cards — the shape
+      // an endgame actually has, and one the finisher can usually complete. Column
+      // assignment and a few cards held back in the stock are randomised.
+      for (let rank = 13; rank >= 1; rank--) {
+        for (const suit of shuffle(SUITS.slice(), rng)) {
+          state.piles[TABLEAUS[Math.floor(rng() * 7)]].push(card(suit, rank));
+        }
+      }
+      const held = Math.floor(rng() * 6);
+      for (let i = 0; i < held; i++) {
+        const from = TABLEAUS.filter((t) => state.piles[t].length);
+        if (!from.length) break;
+        const pile = state.piles[from[Math.floor(rng() * from.length)]];
+        state.piles['stock'].push({ ...pile.pop()!, faceUp: false });
+      }
+      assert.equal(allCards(state).length, 52, 'fixture is a full deck');
+
+      if (!canAutoFinish(state)) {
+        declined++;
+        continue;
+      }
+      offered++;
+      driveAutoFinish(state);
+      assert.equal(state.won, true, `offered but stalled: seed ${seed}, draw ${draw}`);
+    }
+  }
+
+  // Guard against a vacuous pass: the generator must actually produce both answers.
+  assert.ok(offered > 50, `expected a real sample of offered positions, got ${offered}`);
+  assert.ok(declined > 0, `generator never produced an unfinishable board (${declined})`);
 });
 
 test('auto-finish still finishes a solved-but-unstacked board', () => {
