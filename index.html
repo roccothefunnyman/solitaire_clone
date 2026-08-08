@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en" data-theme="midnight" data-back="aurora">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" content="#0a0d1a" />
+    <meta
+      name="description"
+      content="Klondike solitaire, faithfully rebuilt with a modern coat of paint."
+    />
+    <title>Solitaire</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%230b1020'/%3E%3Cpath d='M50 18s-24 18-24 31c0 8 6 14 14 14 4 0 8-2 10-6-1 7-4 12-9 15h18c-5-3-8-8-9-15 2 4 6 6 10 6 8 0 14-6 14-14 0-13-24-31-24-31z' fill='%23f4f6ff'/%3E%3C/svg%3E" />
+    <script type="module" crossorigin src="./assets/index-BsUFeCmN.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-CgY1TQLB.css">
+  </head>
+  <body>
+    <div class="grain" aria-hidden="true"></div>
+    <div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
+
+    <div class="app" id="app">
+      <header class="hud">
+        <div class="hud__left">
+          <div class="brand">
+            <span class="brand__mark" aria-hidden="true">
+              <svg viewBox="0 0 100 100"><path d="M50 12S18 36 18 55c0 11 8 19 18 19 6 0 11-3 13-8-1 10-6 17-13 20h28c-7-3-12-10-13-20 2 5 7 8 13 8 10 0 18-8 18-19C82 36 50 12 50 12Z"/></svg>
+            </span>
+            <span class="brand__text">
+              <strong>Solitaire</strong>
+              <em id="dealLabel">Deal #0000</em>
+            </span>
+          </div>
+        </div>
+
+        <div class="hud__center" role="status" aria-live="polite">
+          <div class="chip" id="chipScore">
+            <span class="chip__key">Score</span>
+            <span class="chip__val" id="scoreValue">0</span>
+          </div>
+          <div class="chip" id="chipTime">
+            <span class="chip__key">Time</span>
+            <span class="chip__val tabular" id="timeValue">0:00</span>
+          </div>
+          <div class="chip">
+            <span class="chip__key">Moves</span>
+            <span class="chip__val tabular" id="movesValue">0</span>
+          </div>
+          <div class="chip chip--mode" id="chipDraw">
+            <span class="chip__key">Draw</span>
+            <span class="chip__val" id="drawValue">Three</span>
+          </div>
+        </div>
+
+        <div class="hud__right">
+          <button class="btn btn--ghost" id="btnUndo" title="Undo (Ctrl+Z)" aria-label="Undo">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h9a5 5 0 0 1 0 10H9"/><path d="M8 5 4 9l4 4"/></svg>
+            <span>Undo</span>
+          </button>
+          <button class="btn btn--ghost" id="btnHint" title="Hint (H)" aria-label="Hint">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6"/><path d="M10 21h4"/><path d="M12 3a6 6 0 0 0-4 10.5c.7.8 1 1.5 1 2.5h6c0-1 .3-1.7 1-2.5A6 6 0 0 0 12 3Z"/></svg>
+            <span>Hint</span>
+          </button>
+          <button class="btn btn--accent is-hidden" id="btnAuto" title="Auto-finish (A)">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 5 5L19 7"/></svg>
+            <span>Auto-finish</span>
+          </button>
+          <button class="btn btn--solid" id="btnNew" title="New game (N)">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            <span>New game</span>
+          </button>
+          <button class="btn btn--icon" id="btnSettings" title="Options" aria-label="Options">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 9 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1Z"/></svg>
+          </button>
+        </div>
+      </header>
+
+      <main class="table" id="table">
+        <div class="row row--top"></div>
+        <div class="row row--tableau"></div>
+        <div class="cards" id="cards"></div>
+      </main>
+
+      <footer class="footer">
+        <span class="footer__hint">Drag to move · Double-click or right-click to send home · Space draws</span>
+        <button class="linkbtn" id="btnRestart" title="Restart this deal (R)">Restart this deal</button>
+        <button class="linkbtn" id="btnStats">Statistics</button>
+      </footer>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <dialog class="sheet" id="settings" aria-label="Options">
+      <form method="dialog" class="sheet__inner">
+        <header class="sheet__head">
+          <h2>Options</h2>
+          <button class="btn btn--icon" value="close" aria-label="Close">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+          </button>
+        </header>
+
+        <section class="field">
+          <h3>Draw</h3>
+          <p class="field__note">Changing draw or scoring starts a new deal.</p>
+          <div class="segmented" id="optDraw" role="radiogroup" aria-label="Draw count">
+            <button type="button" role="radio" data-value="1">Draw one</button>
+            <button type="button" role="radio" data-value="3">Draw three</button>
+          </div>
+        </section>
+
+        <section class="field">
+          <h3>Scoring</h3>
+          <div class="segmented" id="optScoring" role="radiogroup" aria-label="Scoring">
+            <button type="button" role="radio" data-value="standard">Standard</button>
+            <button type="button" role="radio" data-value="vegas">Vegas</button>
+            <button type="button" role="radio" data-value="none">None</button>
+          </div>
+        </section>
+
+        <section class="field field--row">
+          <div>
+            <h3>Winnable deals</h3>
+            <p class="field__note">Only deal hands that can actually be won — applies to your next deal. Off gives a true random shuffle, where many hands cannot be won by anyone.</p>
+          </div>
+          <button type="button" class="switch" id="optWinnable" role="switch" aria-label="Winnable deals only"><i></i></button>
+        </section>
+
+        <section class="field field--row">
+          <div>
+            <h3>Timed game</h3>
+            <p class="field__note">Bonus for a fast finish, small penalty as time passes.</p>
+          </div>
+          <button type="button" class="switch" id="optTimed" role="switch" aria-label="Timed game"><i></i></button>
+        </section>
+
+        <section class="field">
+          <h3>Table</h3>
+          <div class="swatches" id="optTheme" role="radiogroup" aria-label="Table theme">
+            <button type="button" role="radio" data-value="midnight" data-theme-preview="midnight"><span></span>Midnight</button>
+            <button type="button" role="radio" data-value="emerald" data-theme-preview="emerald"><span></span>Emerald</button>
+            <button type="button" role="radio" data-value="ember" data-theme-preview="ember"><span></span>Ember</button>
+            <button type="button" role="radio" data-value="orchid" data-theme-preview="orchid"><span></span>Orchid</button>
+            <button type="button" role="radio" data-value="daylight" data-theme-preview="daylight"><span></span>Daylight</button>
+          </div>
+        </section>
+
+        <section class="field">
+          <h3>Card back</h3>
+          <div class="backs" id="optBack" role="radiogroup" aria-label="Card back">
+            <button type="button" role="radio" data-value="aurora"><span class="mini-back" data-back-preview="aurora"></span></button>
+            <button type="button" role="radio" data-value="lattice"><span class="mini-back" data-back-preview="lattice"></span></button>
+            <button type="button" role="radio" data-value="bloom"><span class="mini-back" data-back-preview="bloom"></span></button>
+            <button type="button" role="radio" data-value="noir"><span class="mini-back" data-back-preview="noir"></span></button>
+          </div>
+        </section>
+
+        <section class="field field--row">
+          <div><h3>Sound</h3><p class="field__note">Synthesised card handling.</p></div>
+          <button type="button" class="switch" id="optSound" role="switch" aria-label="Sound"><i></i></button>
+        </section>
+
+        <section class="field field--row">
+          <div><h3>Reduced motion</h3><p class="field__note">Calmer transitions, no finale cascade.</p></div>
+          <button type="button" class="switch" id="optMotion" role="switch" aria-label="Reduced motion"><i></i></button>
+        </section>
+
+        <section class="field field--row">
+          <div><h3>Left-handed layout</h3><p class="field__note">Puts the stock on the right.</p></div>
+          <button type="button" class="switch" id="optLeft" role="switch" aria-label="Left handed"><i></i></button>
+        </section>
+
+        <footer class="sheet__foot">
+          <button class="linkbtn linkbtn--danger" type="button" id="btnResetStats">Reset statistics</button>
+          <button class="btn btn--solid" value="close">Done</button>
+        </footer>
+      </form>
+    </dialog>
+
+    <dialog class="sheet sheet--narrow" id="statsDialog" aria-label="Statistics">
+      <form method="dialog" class="sheet__inner">
+        <header class="sheet__head">
+          <h2>Statistics</h2>
+          <button class="btn btn--icon" value="close" aria-label="Close">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+          </button>
+        </header>
+        <div class="statgrid" id="statGrid"></div>
+        <footer class="sheet__foot"><button class="btn btn--solid" value="close">Close</button></footer>
+      </form>
+    </dialog>
+
+    <dialog class="sheet sheet--win" id="winDialog" aria-label="You won">
+      <div class="sheet__inner">
+        <div class="win__crown" aria-hidden="true">
+          <svg viewBox="0 0 64 44"><path d="M4 40 2 8l14 12L32 2l16 18L62 8l-2 32Z"/></svg>
+        </div>
+        <h2 class="win__title">You cleared the board</h2>
+        <p class="win__sub" id="winSub">Every card home.</p>
+        <div class="win__stats" id="winStats"></div>
+        <div class="win__actions">
+          <button class="btn btn--ghost" id="btnWinReplay">Replay this deal</button>
+          <button class="btn btn--solid" id="btnWinNew">New deal</button>
+        </div>
+      </div>
+    </dialog>
+
+  </body>
+</html>
