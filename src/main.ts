@@ -5,6 +5,7 @@ import './styles/app.css';
 import { canRecycle } from './game/rules';
 import { Store, type Prefs } from './game/store';
 import { Board } from './ui/board';
+import { Celebration } from './ui/celebration';
 import { sound } from './ui/sound';
 import { WinCascade } from './ui/winCascade';
 
@@ -16,6 +17,7 @@ const table = $('#table');
 const layer = $('#cards');
 const board = new Board(store, table, layer);
 const cascade = new WinCascade();
+const party = new Celebration();
 
 let autoTimer: number | null = null;
 
@@ -112,6 +114,7 @@ store.subscribe((event) => {
     case 'deal':
       stopAuto();
       cascade.stop();
+      party.stop();
       board.buildDeal();
       board.measure();
       if (store.prefs.reducedMotion) board.render(true);
@@ -171,7 +174,11 @@ store.subscribe((event) => {
 
 function celebrate(): void {
   sound.play('win');
-  if (store.prefs.reducedMotion) {
+  // Honour the OS setting as well as our own toggle, and gate the cascade and the
+  // balloons on the same condition so one can never run without the other.
+  const calm =
+    store.prefs.reducedMotion || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (calm) {
     window.setTimeout(showWinDialog, 400);
     return;
   }
@@ -182,11 +189,13 @@ function celebrate(): void {
     window.removeEventListener('pointerdown', skip);
     window.removeEventListener('keydown', skip);
     cascade.stop();
+    party.stop();
     showWinDialog();
   };
   const skip = () => finish();
   window.addEventListener('pointerdown', skip);
   window.addEventListener('keydown', skip);
+  party.start(() => sound.play('sparkle'));
   cascade.start(board.foundationCardElements(), finish);
 }
 
@@ -271,12 +280,14 @@ $('#btnResetStats').addEventListener('click', () => {
 $('#btnWinNew').addEventListener('click', () => {
   $<HTMLDialogElement>('#winDialog').close();
   cascade.stop();
+  party.stop();
   winShown = false;
   store.newGame();
 });
 $('#btnWinReplay').addEventListener('click', () => {
   $<HTMLDialogElement>('#winDialog').close();
   cascade.stop();
+  party.stop();
   winShown = false;
   store.restartDeal();
 });

@@ -997,3 +997,172 @@ dialog.sheet[open] {
     font-size: 15px;
   }
 }
+
+/* ------------------------------------------------------------- celebration */
+
+.party {
+  position: fixed;
+  inset: 0;
+  z-index: 41;
+  pointer-events: none;
+  overflow: hidden;
+  contain: strict;
+}
+
+/* Rise and sway are separate elements so the two motions compose without either
+   fighting the other's transform. */
+.party__balloon {
+  position: absolute;
+  bottom: calc(var(--size) * -1.9);
+  left: var(--x);
+  width: var(--size);
+  height: calc(var(--size) * 1.22);
+  animation: balloon-rise var(--rise) cubic-bezier(0.36, 0, 0.62, 1) forwards;
+  will-change: transform;
+}
+
+.party__body {
+  position: absolute;
+  inset: 0;
+  display: block;
+  border-radius: 50% 50% 47% 47% / 56% 56% 44% 44%;
+  background:
+    radial-gradient(
+      ellipse 42% 34% at 32% 26%,
+      oklch(1 0 0 / 0.72),
+      oklch(1 0 0 / 0.12) 55%,
+      transparent 72%
+    ),
+    linear-gradient(
+      160deg,
+      oklch(0.86 0.15 var(--hue) / 0.5),
+      oklch(0.66 0.19 var(--hue) / 0.62)
+    );
+  box-shadow:
+    inset 0 calc(var(--size) * -0.14) calc(var(--size) * 0.2) oklch(0.4 0.12 var(--hue) / 0.4),
+    0 6px 22px oklch(0.6 0.16 var(--hue) / 0.24);
+  animation: balloon-sway var(--sway) ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+/* The knot. */
+.party__body::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -5%;
+  width: 14%;
+  height: 9%;
+  translate: -50% 0;
+  border-radius: 40% 40% 50% 50%;
+  background: oklch(0.72 0.16 var(--hue) / 0.6);
+}
+
+.party__string {
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  width: 1px;
+  height: calc(var(--size) * 0.85);
+  translate: -50% 0;
+  background: linear-gradient(oklch(1 0 0 / 0.34), transparent);
+  transform-origin: top center;
+  animation: balloon-sway var(--sway) ease-in-out infinite alternate;
+}
+
+@keyframes balloon-rise {
+  from {
+    transform: translate3d(0, 0, 0);
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  88% {
+    opacity: 1;
+  }
+  to {
+    transform: translate3d(var(--drift), calc(-100vh - var(--size) * 3), 0);
+    opacity: 0;
+  }
+}
+
+@keyframes balloon-sway {
+  from {
+    transform: translate3d(calc(var(--drift) * -0.28), 0, 0) rotate(calc(var(--tilt) * -1));
+  }
+  to {
+    transform: translate3d(calc(var(--drift) * 0.28), 0, 0) rotate(var(--tilt));
+  }
+}
+
+.party__burst {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+
+.party__burst i {
+  position: absolute;
+  width: var(--sz);
+  height: var(--sz);
+  margin: calc(var(--sz) / -2) 0 0 calc(var(--sz) / -2);
+  border-radius: 999px;
+  background: oklch(0.97 0.19 var(--hue));
+  box-shadow:
+    0 0 14px 5px oklch(0.92 0.22 var(--hue) / 0.95),
+    0 0 38px 14px oklch(0.84 0.22 var(--hue) / 0.5);
+  animation: spark var(--spark) cubic-bezier(0.16, 0.75, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+.party__flash {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  margin: -15px 0 0 -15px;
+  border-radius: 999px;
+  background: radial-gradient(
+    circle,
+    oklch(1 0 0 / 0.95),
+    oklch(0.92 0.2 var(--hue) / 0.55) 42%,
+    transparent 70%
+  );
+  animation: flash 0.7s ease-out forwards;
+  will-change: transform, opacity;
+}
+
+/* Stays concentrated and bright rather than instantly ballooning into a dim halo. */
+@keyframes flash {
+  0% {
+    transform: scale(0.4);
+    opacity: 1;
+  }
+  35% {
+    opacity: 1;
+  }
+  100% {
+    transform: scale(5.5);
+    opacity: 0;
+  }
+}
+
+/* Opacity holds while the shard travels, then drops — fading from the first frame
+   makes the whole burst read as a faint smudge. */
+@keyframes spark {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1.25);
+    opacity: 1;
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(var(--dx), calc(var(--dy) + var(--fall)), 0) scale(0.4);
+    opacity: 0;
+  }
+}
+
+/* Motion-sensitive players skip the whole finale in main.ts, cascade included, so
+   there is deliberately no display:none here — it would leave a celebration running
+   invisibly while the cascade played on. */
